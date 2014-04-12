@@ -1,0 +1,71 @@
+
+body {
+    font-family: 'Source Sans Pro', sans-serif;
+    padding: 0;
+    margin: 0;
+}
+.document {
+    text-align: center;
+}
+
+.paragraph {
+    padding: 10px;
+    font-size: 20px;
+    width: 75%;
+    text-align: left;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: #FEFEFE;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    display: block;
+    border: none;
+    resize: none;
+    border-radius: 10px;
+    outline: none;
+}
+
+.paragraph:focus {
+    background-color: #EEE;
+}
+
+.add {
+    border-radius: 55px;
+    padding: 5px;
+    background-color: #EEE;
+    min-width: 25px;
+    min-height: 25px;
+    width: 200px;
+    display: inline-block;
+}
+
+.add-wrapper {
+    text-align: center;
+}
+
+#spritz {
+    background-color: #F0F0F0;
+    display: none;
+    height: 115px;
+    text-align: center;
+    width: 100%;
+}
+
+.cram-button {
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    background-color: #F0F0F0;
+    display: inline-block;
+    padding: 15px 0 15px 0;
+    cursor: pointer;
+    width: 50%;
+
+    color: rgba(150,150,150, 0.8);
+    text-shadow: 1px 4px 6px #def, 0 0 0 #000, 1px 4px 6px #def;
+}
+
+.cram-button:hover {
+    background-color: #DDD;
+}
+
