@@ -1,5 +1,7 @@
 /** @jsx React.DOM */
 
+var TAB = 9;
+
 /* You know when you want to propagate input to a parent...
  * but then that parent does something with the input...
  * then changing the props of the input...
@@ -28,7 +30,18 @@ var BlurInput = React.createClass({
         return this.transferPropsTo(<textarea
             value={this.state.value}
             onChange={this.handleChange}
+            onKeyDown={this.handleKeydown}
             onBlur={this.handleBlur} />);
+    },
+    handleKeydown: function(e) {
+        if (e.keyCode === TAB) {
+            e.preventDefault();
+            if (e.shiftKey) {
+                this.props.onPrev(this.state.value);
+            } else {
+                this.props.onNext(this.state.value);
+            }
+        }
     },
     componentWillReceiveProps: function(nextProps) {
         this.setState({ value: nextProps.value });

@@ -54,6 +54,7 @@ var Editor = React.createClass({
                            ref={"paragraph"+i}
                            key={i}
                            onChange={this.changeValue(i)} 
+                           onPrev={this.prev(i)}
                            onNext={this.next(i)} />
                        )}
                 <div className="add-wrapper">
@@ -104,23 +105,31 @@ var Editor = React.createClass({
     },
     next: function(i) {
         return (value) => {
-            var newValues = _.clone(this.state.values);
-            newValues[i] = value;
-            newValues = _.filter(newValues, (value) => value !== "");
-            if (i + 1 < this.state.values.length) {
-                this.setState({
-                    values: newValues
-                }, () => {
-                    this.refs["paragraph"+(i + 1)].open();
-                });
-            } else {
-                this.setState({
-                    values: newValues.concat([""])
-                }, () => {
-                    this.refs["paragraph"+(this.state.values.length-1)].open();
-                });
-            }
+            this.jumpFromTo(i, i + 1, value);
         };
+    },
+    prev: function(i) {
+        return (value) => {
+            this.jumpFromTo(i, i - 1, value);
+        };
+    },
+    jumpFromTo: function(from, to, value) {
+        var newValues = _.clone(this.state.values);
+        newValues[from] = value;
+        newValues = _.filter(newValues, (value) => value !== "");
+        if (to < this.state.values.length) {
+            this.setState({
+                values: newValues
+            }, () => {
+                this.refs["paragraph" + to].open();
+            });
+        } else {
+            this.setState({
+                values: newValues.concat([""])
+            }, () => {
+                this.refs["paragraph"+(this.state.values.length-1)].open();
+            });
+        }
     }
 });
 
@@ -155,6 +164,12 @@ var Paragraph = React.createClass({
                     ref="editor"
                     type="text"
                     value={this.props.value}
+                    onPrev={(value) => {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onPrev(value);
+                    }}
                     onNext={(value) => {
                         this.setState({
                             editing: false

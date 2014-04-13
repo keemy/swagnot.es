@@ -1,6 +1,8 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 /** @jsx React.DOM */
 
+var TAB = 9;
+
 /* You know when you want to propagate input to a parent...
  * but then that parent does something with the input...
  * then changing the props of the input...
@@ -29,7 +31,19 @@ var BlurInput = React.createClass({displayName: 'BlurInput',
         return this.transferPropsTo(React.DOM.textarea(
             {value:this.state.value,
             onChange:this.handleChange,
+            onKeyDown:this.handleKeydown,
             onBlur:this.handleBlur} ));
+    },
+    handleKeydown: function(e) {
+        console.log(e.keyCode);
+        if (e.keyCode === TAB) {
+            e.preventDefault();
+            if (e.shiftKey) {
+                this.props.onPrev(this.state.value);
+            } else {
+                this.props.onNext(this.state.value);
+            }
+        }
     },
     componentWillReceiveProps: function(nextProps) {
         this.setState({ value: nextProps.value });
@@ -114,6 +128,7 @@ var Editor = React.createClass({displayName: 'Editor',
                            ref:"paragraph"+i,
                            key:i,
                            onChange:this.changeValue(i), 
+                           onPrev:this.prev(i),
                            onNext:this.next(i)} );}.bind(this)
                        ),
                 React.DOM.div( {className:"add-wrapper"}, 
@@ -164,23 +179,31 @@ var Editor = React.createClass({displayName: 'Editor',
     },
     next: function(i) {
         return function(value)  {
-            var newValues = _.clone(this.state.values);
-            newValues[i] = value;
-            newValues = _.filter(newValues, function(value)  {return value !== "";});
-            if (i + 1 < this.state.values.length) {
-                this.setState({
-                    values: newValues
-                }, function()  {
-                    this.refs["paragraph"+(i + 1)].open();
-                }.bind(this));
-            } else {
-                this.setState({
-                    values: newValues.concat([""])
-                }, function()  {
-                    this.refs["paragraph"+(this.state.values.length-1)].open();
-                }.bind(this));
-            }
+            this.jumpFromTo(i, i + 1, value);
         }.bind(this);
+    },
+    prev: function(i) {
+        return function(value)  {
+            this.jumpFromTo(i, i - 1, value);
+        }.bind(this);
+    },
+    jumpFromTo: function(from, to, value) {
+        var newValues = _.clone(this.state.values);
+        newValues[from] = value;
+        newValues = _.filter(newValues, function(value)  {return value !== "";});
+        if (to < this.state.values.length) {
+            this.setState({
+                values: newValues
+            }, function()  {
+                this.refs["paragraph" + to].open();
+            }.bind(this));
+        } else {
+            this.setState({
+                values: newValues.concat([""])
+            }, function()  {
+                this.refs["paragraph"+(this.state.values.length-1)].open();
+            }.bind(this));
+        }
     }
 });
 
@@ -215,6 +238,12 @@ var Paragraph = React.createClass({displayName: 'Paragraph',
                     ref:"editor",
                     type:"text",
                     value:this.props.value,
+                    onPrev:function(value)  {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onPrev(value);
+                    }.bind(this),
                     onNext:function(value)  {
                         this.setState({
                             editing: false
