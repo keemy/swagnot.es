@@ -7,6 +7,10 @@ body {
     text-align: center;
 }
 
+.paragraph-wrapper {
+    min-height: 100px;
+}
+
 .paragraph {
     padding: 10px;
     font-size: 20px;
