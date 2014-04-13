@@ -911,10 +911,10 @@ Parser.prototype.tok = function() {
     case 'paragraph': {
       return this.options.paragraphFn
         ? this.options.paragraphFn.call(null, this.inline.output(this.token.text))
-        : React.DOM.div(null, this.inline.output(this.token.text));
+        : React.DOM.span(null, this.inline.output(this.token.text));
     }
     case 'text': {
-      return React.DOM.div(null, this.parseText());
+      return React.DOM.span(null, this.parseText());
     }
   }
 };

@@ -35,7 +35,6 @@ var BlurInput = React.createClass({displayName: 'BlurInput',
             onBlur:this.handleBlur} ));
     },
     handleKeydown: function(e) {
-        console.log(e.keyCode);
         if (e.keyCode === TAB) {
             e.preventDefault();
             if (e.shiftKey) {
@@ -128,8 +127,8 @@ var Editor = React.createClass({displayName: 'Editor',
                            ref:"paragraph"+i,
                            key:i,
                            onChange:this.changeValue(i), 
-                           onPrev:this.prev(i),
-                           onNext:this.next(i)} );}.bind(this)
+                           handleChangeFocus:this.handleChangeFocus(i),
+                           onAdd:this.add(i)} );}.bind(this)
                        ),
                 React.DOM.div( {className:"add-wrapper"}, 
                    React.DOM.div(
@@ -145,6 +144,21 @@ var Editor = React.createClass({displayName: 'Editor',
            )
         );
     },
+
+    handleChangeFocus: function(i) {
+        return function(value)  {
+            var newValues = this.state.values;
+            newValues = _.filter(this.state.values, function(value)  {return value !== "";});
+            this.setState({
+                values: newValues
+            }, function()  {
+                if (this.state.values[i] !== value && newValues.length === this.state.values.length) {
+                    this.refs["paragraph"+(i-1)].getDOMNode().focus();
+                }
+            }.bind(this));
+        }.bind(this)
+    },
+
     handleSave: function() { 
         var self = this;
         this.setState({
@@ -162,11 +176,11 @@ var Editor = React.createClass({displayName: 'Editor',
         this.setState({
             values: this.state.values.concat([""])
         }, function()  {
-            this.refs["paragraph"+(this.state.values.length - 1)].open();
+            this.refs["paragraph"+(this.state.values.length - 1)].getDOMNode().focus();
         }.bind(this));
     },
     changeValue: function(i) {
-        return function(value)  {
+        return function(value, cb)  {
             var newValues = _.clone(this.state.values);
             newValues[i] = value;
             if (newValues[i] === "") {
@@ -174,37 +188,26 @@ var Editor = React.createClass({displayName: 'Editor',
             }
             this.setState({
                 values: newValues // _.filter(newValues, (value) => value !== "")
+            }, function()  {
+                if (cb) {
+                    cb();
+                }
             });
         }.bind(this);
     },
-    next: function(i) {
+    add: function(i) {
         return function(value)  {
-            this.jumpFromTo(i, i + 1, value);
-        }.bind(this);
-    },
-    prev: function(i) {
-        return function(value)  {
-            this.jumpFromTo(i, i - 1, value);
-        }.bind(this);
-    },
-    jumpFromTo: function(from, to, value) {
-        var newValues = _.clone(this.state.values);
-        newValues[from] = value;
-        newValues = _.filter(newValues, function(value)  {return value !== "";});
-        if (to < this.state.values.length) {
+            newValues = _.filter(this.state.values, function(value)  {return value !== "";});
+            var newValues = newValues.slice(0,i + 1)
+                .concat([value])
+                .concat(newValues.slice(i + 1,newValues.length));
+            this.refs["paragraph"+(i + 1)].getDOMNode().focus();
             this.setState({
                 values: newValues
-            }, function()  {
-                this.refs["paragraph" + to].open();
-            }.bind(this));
-        } else {
-            this.setState({
-                values: newValues.concat([""])
-            }, function()  {
-                this.refs["paragraph"+(this.state.values.length-1)].open();
-            }.bind(this));
-        }
-    }
+            });
+
+        }.bind(this);
+    },
 });
 
 var Paragraph = React.createClass({displayName: 'Paragraph',
@@ -231,48 +234,31 @@ var Paragraph = React.createClass({displayName: 'Paragraph',
     },
 
     render: function() {
-        if (this.state.editing) {
-            return React.DOM.div( {className:"paragraph-wrapper"}, 
-                BlurInput(
-                    {className:"paragraph",
-                    ref:"editor",
-                    type:"text",
-                    value:this.props.value,
-                    onPrev:function(value)  {
-                        this.setState({
-                            editing: false
-                        });
-                        this.props.onPrev(value);
-                    }.bind(this),
-                    onNext:function(value)  {
-                        this.setState({
-                            editing: false
-                        });
-                        this.props.onNext(value);
-                    }.bind(this),
-                    onChange:function(e)  {
-                        this.setState({
-                            editing: false
-                        });
-                        this.props.onChange(e);
-                    }.bind(this)} )
-            )
-        } else {
-            return React.DOM.div( {className:"paragraph-wrapper",
-                        onClick:this.startEditor} , 
-                React.DOM.div( {className:"paragraph"}, 
-                    markedReact(this.props.value)
-                )
-            );
-        }
+        return React.DOM.div( {className:"paragraph",
+                        contentEditable:"true",
+                        onFocus:this.handleFocus,
+                        onKeyDown:this.handleKeydown} , 
+                this.props.value
+        );
     },
 
-    startEditor: function() {
-        this.setState({
-            editing: true
-        }, function() {
-            this.refs.editor.getDOMNode().focus();
-        });
+    handleFocus: function() { 
+        this.props.handleChangeFocus(this.props.value);
+    },
+
+    handleKeydown: function(e) { 
+        var offset = window.getSelection().extentOffset;
+        if (e.keyCode === 13 /* enter */) {
+            if (offset > 0) {
+                var value = this.props.value;
+                this.props.onChange(value.substring(0, offset), function()  {
+                    this.props.onAdd(value.substring(offset, value.length));
+                }.bind(this));
+            }
+            e.preventDefault();
+        } else if (e.keyCode == 8) {
+            // todo
+        }
     }
 });
 

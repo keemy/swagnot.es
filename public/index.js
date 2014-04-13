@@ -54,8 +54,8 @@ var Editor = React.createClass({
                            ref={"paragraph"+i}
                            key={i}
                            onChange={this.changeValue(i)} 
-                           onPrev={this.prev(i)}
-                           onNext={this.next(i)} />
+                           handleChangeFocus={this.handleChangeFocus(i)}
+                           onAdd={this.add(i)} />
                        )}
                 <div className="add-wrapper">
                    <div
@@ -71,6 +71,21 @@ var Editor = React.createClass({
            </div>
         </div>;
     },
+
+    handleChangeFocus: function(i) {
+        return (value) => {
+            var newValues = this.state.values;
+            newValues = _.filter(this.state.values, (value) => value !== "");
+            this.setState({
+                values: newValues
+            }, () => {
+                if (this.state.values[i] !== value && newValues.length === this.state.values.length) {
+                    this.refs["paragraph"+(i-1)].getDOMNode().focus();
+                }
+            });
+        }
+    },
+
     handleSave: function() { 
         var self = this;
         this.setState({
@@ -88,11 +103,11 @@ var Editor = React.createClass({
         this.setState({
             values: this.state.values.concat([""])
         }, () => {
-            this.refs["paragraph"+(this.state.values.length - 1)].open();
+            this.refs["paragraph"+(this.state.values.length - 1)].getDOMNode().focus();
         });
     },
     changeValue: function(i) {
-        return (value) => {
+        return (value, cb) => {
             var newValues = _.clone(this.state.values);
             newValues[i] = value;
             if (newValues[i] === "") {
@@ -100,37 +115,26 @@ var Editor = React.createClass({
             }
             this.setState({
                 values: newValues // _.filter(newValues, (value) => value !== "")
+            }, () => {
+                if (cb) {
+                    cb();
+                }
             });
         };
     },
-    next: function(i) {
+    add: function(i) {
         return (value) => {
-            this.jumpFromTo(i, i + 1, value);
-        };
-    },
-    prev: function(i) {
-        return (value) => {
-            this.jumpFromTo(i, i - 1, value);
-        };
-    },
-    jumpFromTo: function(from, to, value) {
-        var newValues = _.clone(this.state.values);
-        newValues[from] = value;
-        newValues = _.filter(newValues, (value) => value !== "");
-        if (to < this.state.values.length) {
+            newValues = _.filter(this.state.values, (value) => value !== "");
+            var newValues = newValues.slice(0,i + 1)
+                .concat([value])
+                .concat(newValues.slice(i + 1,newValues.length));
+            this.refs["paragraph"+(i + 1)].getDOMNode().focus();
             this.setState({
                 values: newValues
-            }, () => {
-                this.refs["paragraph" + to].open();
             });
-        } else {
-            this.setState({
-                values: newValues.concat([""])
-            }, () => {
-                this.refs["paragraph"+(this.state.values.length-1)].open();
-            });
-        }
-    }
+
+        };
+    },
 });
 
 var Paragraph = React.createClass({
@@ -157,48 +161,31 @@ var Paragraph = React.createClass({
     },
 
     render: function() {
-        if (this.state.editing) {
-            return <div className="paragraph-wrapper">
-                <BlurInput
-                    className="paragraph"
-                    ref="editor"
-                    type="text"
-                    value={this.props.value}
-                    onPrev={(value) => {
-                        this.setState({
-                            editing: false
-                        });
-                        this.props.onPrev(value);
-                    }}
-                    onNext={(value) => {
-                        this.setState({
-                            editing: false
-                        });
-                        this.props.onNext(value);
-                    }}
-                    onChange={(e) => {
-                        this.setState({
-                            editing: false
-                        });
-                        this.props.onChange(e);
-                    }} />
-            </div>
-        } else {
-            return <div className="paragraph-wrapper"
-                        onClick={this.startEditor} >
-                <div className="paragraph">
-                    {markedReact(this.props.value)}
-                </div>
-            </div>;
-        }
+        return <div className="paragraph"
+                        contentEditable="true"
+                        onFocus={this.handleFocus}
+                        onKeyDown={this.handleKeydown} >
+                {this.props.value}
+        </div>;
     },
 
-    startEditor: function() {
-        this.setState({
-            editing: true
-        }, function() {
-            this.refs.editor.getDOMNode().focus();
-        });
+    handleFocus: function() { 
+        this.props.handleChangeFocus(this.props.value);
+    },
+
+    handleKeydown: function(e) { 
+        var offset = window.getSelection().extentOffset;
+        if (e.keyCode === 13 /* enter */) {
+            if (offset > 0) {
+                var value = this.props.value;
+                this.props.onChange(value.substring(0, offset), () => {
+                    this.props.onAdd(value.substring(offset, value.length));
+                });
+            }
+            e.preventDefault();
+        } else if (e.keyCode == 8) {
+            // todo
+        }
     }
 });
 
