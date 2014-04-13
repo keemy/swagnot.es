@@ -1,6 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 /** @jsx React.DOM */
 
+var BACKSPACE = 8;
 var TAB = 9;
 var ENTER = 13;
 
@@ -50,6 +51,13 @@ var BlurInput = React.createClass({displayName: 'BlurInput',
             var right = this.state.value.substring(cursor, this.state.value.length);
             this.props.onSplit(left, right);
             e.preventDefault();
+        } else if (e.keyCode === BACKSPACE) {
+            var cursorStart = this.getDOMNode().selectionStart;
+            var cursorEnd = this.getDOMNode().selectionEnd;
+            if (cursorStart === 0 && cursorStart === cursorEnd) {
+                this.props.onBackspace(this.state.value);
+                e.preventDefault();
+            }
         }
     },
     componentWillReceiveProps: function(nextProps) {
@@ -124,6 +132,7 @@ var Editor = React.createClass({displayName: 'Editor',
                            onChange:this.changeValue(i), 
                            onPrev:this.prev(i),
                            onSplit:this.split(i),
+                           onBackspace:this.backspace(i),
                            onNext:this.next(i)} );}.bind(this)
                        ),
                 React.DOM.div( {className:"add-wrapper"}, 
@@ -160,6 +169,20 @@ var Editor = React.createClass({displayName: 'Editor',
                 values: newValues
             }, function()  {
                 this.refs["paragraph"+(i+1)].open(0);
+            }.bind(this));
+        }.bind(this);
+    },
+    backspace: function(i) {
+        return function(value)  {
+            if (i === 0) return;
+            var newValues = _.clone(this.state.values);
+            var oldLength = newValues[i - 1].length;
+            newValues[i - 1] += value;
+            newValues.splice(i,1);
+            this.setState({
+                values: newValues
+            }, function()  {
+                this.refs["paragraph"+(i-1)].open(oldLength);
             }.bind(this));
         }.bind(this);
     },
@@ -281,7 +304,8 @@ var Paragraph = React.createClass({displayName: 'Paragraph',
                         });
                         this.props.onChange(e);
                     }.bind(this),
-                    onSplit:this.props.onSplit}
+                    onSplit:this.props.onSplit,
+                    onBackspace:this.props.onBackspace}
                 )
             )
         } else {

@@ -1,5 +1,6 @@
 /** @jsx React.DOM */
 
+var BACKSPACE = 8;
 var TAB = 9;
 var ENTER = 13;
 
@@ -49,6 +50,13 @@ var BlurInput = React.createClass({
             var right = this.state.value.substring(cursor, this.state.value.length);
             this.props.onSplit(left, right);
             e.preventDefault();
+        } else if (e.keyCode === BACKSPACE) {
+            var cursorStart = this.getDOMNode().selectionStart;
+            var cursorEnd = this.getDOMNode().selectionEnd;
+            if (cursorStart === 0 && cursorStart === cursorEnd) {
+                this.props.onBackspace(this.state.value);
+                e.preventDefault();
+            }
         }
     },
     componentWillReceiveProps: function(nextProps) {

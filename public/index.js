@@ -56,6 +56,7 @@ var Editor = React.createClass({
                            onChange={this.changeValue(i)} 
                            onPrev={this.prev(i)}
                            onSplit={this.split(i)}
+                           onBackspace={this.backspace(i)}
                            onNext={this.next(i)} />
                        )}
                 <div className="add-wrapper">
@@ -92,6 +93,20 @@ var Editor = React.createClass({
                 values: newValues
             }, () => {
                 this.refs["paragraph"+(i+1)].open(0);
+            });
+        };
+    },
+    backspace: function(i) {
+        return (value) => {
+            if (i === 0) return;
+            var newValues = _.clone(this.state.values);
+            var oldLength = newValues[i - 1].length;
+            newValues[i - 1] += value;
+            newValues.splice(i,1);
+            this.setState({
+                values: newValues
+            }, () => {
+                this.refs["paragraph"+(i-1)].open(oldLength);
             });
         };
     },
@@ -214,6 +229,7 @@ var Paragraph = React.createClass({
                         this.props.onChange(e);
                     }}
                     onSplit={this.props.onSplit}
+                    onBackspace={this.props.onBackspace}
                 />
             </div>
         } else {
