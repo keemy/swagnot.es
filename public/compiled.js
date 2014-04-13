@@ -35,7 +35,6 @@ var BlurInput = React.createClass({displayName: 'BlurInput',
             onBlur:this.handleBlur} ));
     },
     handleKeydown: function(e) {
-        console.log(e.keyCode);
         if (e.keyCode === TAB) {
             e.preventDefault();
             if (e.shiftKey) {

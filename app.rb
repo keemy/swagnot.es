@@ -1,6 +1,9 @@
 require "sinatra"
 require "sequel"
 require "json"
+require 'digest/sha2'
+
+enable :sessions
 
 DB = Sequel.sqlite("db.sqlite")
 
@@ -46,5 +49,31 @@ get "/entries/new" do
 end
 
 get "/entries/:id" do
-  JSON.parse(DB[:entries].first(id: params["id"].to_i)[:content]).join(". ").chars.select{ |c|  !(/[\*_\#]/.match(c))}.join
+    JSON.parse(DB[:entries].first(id: params["id"].to_i)[:content]).join(". ").chars.select{ |c|  !(/[\*_\#]/.match(c))}.join
+end
+
+get "/login" do
+    erb :foo # => "views/foo.erb"
+end
+
+post "/authenticate" do
+  username = params["username"]
+  pw_hash = (Digest::SHA2.new << params["password"]).to_s
+
+  users = DB[:users]
+  user = users.where(name: username)
+
+  if user.count == 0
+    session[:id]= DB[:users].insert(name: username, pw_hash: pw_hash)
+  else
+    user = user.first
+    if user[:pw_hash] == pw_hash
+      session[:id]= user[:id]
+    else
+      redirect "/login"
+    end
+  end
+
+  redirect "/"
+
 end
