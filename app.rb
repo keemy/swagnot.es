@@ -43,8 +43,10 @@ get "/note/:id" do
   "<script>var currentNote = #{content};</script>#{File.read("public/index.html")}"
 end
 
-get "/entries/new" do
-    result = DB[:entries].insert(content: params["content"])
+post "/entries/new" do
+    temp=JSON.parse(params["content"])
+    
+    result = DB[:entries].insert(name: temp[0], content: params["content"])
     {id: result}.to_json
 end
 
@@ -65,6 +67,7 @@ post "/authenticate" do
 
   if user.count == 0
     session[:id]= DB[:users].insert(name: username, pw_hash: pw_hash)
+    DB[:folder].insert(name: root, folder_id: nil)
   else
     user = user.first
     if user[:pw_hash] == pw_hash
@@ -77,3 +80,6 @@ post "/authenticate" do
   redirect "/"
 
 end
+
+#get "directory" do
+  
