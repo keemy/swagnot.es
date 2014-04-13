@@ -55,6 +55,7 @@ var Editor = React.createClass({
                            key={i}
                            onChange={this.changeValue(i)} 
                            onPrev={this.prev(i)}
+                           onSplit={this.split(i)}
                            onNext={this.next(i)} />
                        )}
                 <div className="add-wrapper">
@@ -70,6 +71,29 @@ var Editor = React.createClass({
                 <div className="share">Share this note with friends at http://swagnotes.net/{this.state.lastSaved}</div>}
            </div>
         </div>;
+    },
+    split: function(i) {
+        return (left, right) => {
+            if (left === "") return;
+            var newValues = _.clone(this.state.values);
+
+            if (left.match(/(^|\n)\* .*$/) && (right.match(/\* /) || right === "")) {
+                newValues[i] = left + "\n" + right;
+                this.setState({
+                    values: newValues
+                });
+                return;
+            }
+
+            newValues[i] = right;
+            newValues.splice(i, 0, left.trim());
+
+            this.setState({
+                values: newValues
+            }, () => {
+                this.refs["paragraph"+(i+1)].open(0);
+            });
+        };
     },
     handleSave: function() { 
         var self = this;
@@ -135,13 +159,19 @@ var Editor = React.createClass({
 });
 
 var Paragraph = React.createClass({
-    open: function() {
+    open: function(cursorPos) {
         this.setState({
             editing: true
         }, () => {
             var node = this.refs.editor.getDOMNode()
             node.focus();
-            node.selectionStart = node.value.length;
+            if (cursorPos == null) {
+                node.selectionStart = node.value.length;
+                node.selectionEnd = node.value.length;
+            } else {
+                node.selectionStart = cursorPos;
+                node.selectionEnd = cursorPos;
+            }
         });
     },
 
@@ -182,7 +212,9 @@ var Paragraph = React.createClass({
                             editing: false
                         });
                         this.props.onChange(e);
-                    }} />
+                    }}
+                    onSplit={this.props.onSplit}
+                />
             </div>
         } else {
             return <div className="paragraph-wrapper"

@@ -2,6 +2,7 @@
 /** @jsx React.DOM */
 
 var TAB = 9;
+var ENTER = 13;
 
 /* You know when you want to propagate input to a parent...
  * but then that parent does something with the input...
@@ -32,6 +33,7 @@ var BlurInput = React.createClass({displayName: 'BlurInput',
             {value:this.state.value,
             onChange:this.handleChange,
             onKeyDown:this.handleKeydown,
+            rows:this.state.value.split("\n").length,
             onBlur:this.handleBlur} ));
     },
     handleKeydown: function(e) {
@@ -42,26 +44,19 @@ var BlurInput = React.createClass({displayName: 'BlurInput',
             } else {
                 this.props.onNext(this.state.value);
             }
+        } else if (e.keyCode === ENTER) {
+            var cursor = this.getDOMNode().selectionStart;
+            var left = this.state.value.substring(0, cursor);
+            var right = this.state.value.substring(cursor, this.state.value.length);
+            this.props.onSplit(left, right);
+            e.preventDefault();
         }
     },
     componentWillReceiveProps: function(nextProps) {
         this.setState({ value: nextProps.value });
     },
     handleChange: function(e) {
-        var currentValue = this.state.value;
-        var newValue = e.target.value;
-
-        if (newValue === "\n") {
-            // noop
-        } else if (newValue[newValue.length - 1] === "\n") {
-            if (!currentValue.match(/\* .*$/)) {
-                this.props.onNext(currentValue.trim());
-            } else {
-                this.setState({ value: e.target.value });
-            }
-        } else {
-            this.setState({ value: e.target.value });
-        }
+        this.setState({ value: e.target.value });
     },
     handleBlur: function(e) {
         this.props.onChange(e.target.value);
@@ -128,6 +123,7 @@ var Editor = React.createClass({displayName: 'Editor',
                            key:i,
                            onChange:this.changeValue(i), 
                            onPrev:this.prev(i),
+                           onSplit:this.split(i),
                            onNext:this.next(i)} );}.bind(this)
                        ),
                 React.DOM.div( {className:"add-wrapper"}, 
@@ -143,6 +139,29 @@ var Editor = React.createClass({displayName: 'Editor',
                 React.DOM.div( {className:"share"}, "Share this note with friends at http://swagnotes.net/",this.state.lastSaved)
            )
         );
+    },
+    split: function(i) {
+        return function(left, right)  {
+            if (left === "") return;
+            var newValues = _.clone(this.state.values);
+
+            if (left.match(/(^|\n)\* .*$/) && (right.match(/\* /) || right === "")) {
+                newValues[i] = left + "\n" + right;
+                this.setState({
+                    values: newValues
+                });
+                return;
+            }
+
+            newValues[i] = right;
+            newValues.splice(i, 0, left.trim());
+
+            this.setState({
+                values: newValues
+            }, function()  {
+                this.refs["paragraph"+(i+1)].open(0);
+            }.bind(this));
+        }.bind(this);
     },
     handleSave: function() { 
         var self = this;
@@ -208,13 +227,19 @@ var Editor = React.createClass({displayName: 'Editor',
 });
 
 var Paragraph = React.createClass({displayName: 'Paragraph',
-    open: function() {
+    open: function(cursorPos) {
         this.setState({
             editing: true
         }, function()  {
             var node = this.refs.editor.getDOMNode()
             node.focus();
-            node.selectionStart = node.value.length;
+            if (cursorPos == null) {
+                node.selectionStart = node.value.length;
+                node.selectionEnd = node.value.length;
+            } else {
+                node.selectionStart = cursorPos;
+                node.selectionEnd = cursorPos;
+            }
         }.bind(this));
     },
 
@@ -255,7 +280,9 @@ var Paragraph = React.createClass({displayName: 'Paragraph',
                             editing: false
                         });
                         this.props.onChange(e);
-                    }.bind(this)} )
+                    }.bind(this),
+                    onSplit:this.props.onSplit}
+                )
             )
         } else {
             return React.DOM.div( {className:"paragraph-wrapper",
