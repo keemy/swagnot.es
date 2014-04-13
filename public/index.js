@@ -25,7 +25,7 @@ var Editor = React.createClass({
                         showingSpritz: true
                     });
                     $("#spritz").slideDown();
-                    $.get("/entries/new?content=" + JSON.stringify(this.state.values), function(result) {
+                    $.post("/entries/new?content=" + JSON.stringify(this.state.values), function(result) {
                         var json = JSON.parse(result);
                         self.setState({
                             myId: json.id
