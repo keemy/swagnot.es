@@ -121,7 +121,8 @@ var Editor = React.createClass({
             this.setState({
                 values: newValues
             }, () => {
-                this.refs["paragraph" + to].open();
+                var c = this.state.values.length;
+                this.refs["paragraph" + Math.max(to,0)].open();
             });
         } else {
             this.setState({
