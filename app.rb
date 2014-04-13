@@ -6,8 +6,26 @@ DB = Sequel.sqlite("db.sqlite")
 
 DB.create_table? :entries do
     primary_key :id
+    String :name
     String :content
+    foreign_key :user_id, :users
+    foreign_key :folder_id, :folders
 end
+
+DB.create_table? :users do
+    primary_key :id
+    String :name
+    String :pw_hash
+end
+
+DB.create_table? :folders do
+    primary_key :id
+    String :name
+    foreign_key :user_id, :users
+    foreign_key :folder_id, :folder
+end
+
+
 
 before do
     `cd public; make build; cd ..`
