@@ -9,13 +9,15 @@ var Editor = React.createClass({
         return {
             values: currentNote || [],
             showingSpritz: false,
-            myId: null
+            myId: null,
+            lastSaved: null,
+            saving: false
         }
     },
 
     render: function() {
         return <div>
-            <div 
+            {!this.state.showingSpritz && <div 
                 className="cram-button"
                 onClick={() => {
                     var self = this;
@@ -33,18 +35,18 @@ var Editor = React.createClass({
                         }, function() {});
                     });
                 }}>
-                CRAM
-            </div>
-            <div 
+                <i className="fa fa-chevron-down" />
+            </div>}
+            {this.state.showingSpritz && <div 
                 className="cram-button"
-                onClick={function() {
+                onClick={() => {
                     $("#spritz").slideUp();
+                    this.setState({
+                        showingSpritz: false
+                    });
             }}>
-                HIDE
-            </div>
-            {this.state.myId &&
-                <span>Share this note with friends at SOME_URL/{this.state.myId}</span>
-            }
+                <i className="fa fa-chevron-up" />
+            </div>}
             <div className="document">
                 {_.map(this.state.values, (value, i) =>
                    <Paragraph
@@ -58,8 +60,27 @@ var Editor = React.createClass({
                        className="add"
                        onClick={this.addNew}>+</div>
                 </div>
+                <div className="add"
+                    onClick={this.handleSave}>Save</div>
+            {this.state.saving &&
+                <div>Saving...</div>}
+            {this.state.lastSaved &&
+                <div className="share">Share this note with friends at http://swagnotes.net/{this.state.lastSaved}</div>}
            </div>
         </div>;
+    },
+    handleSave: function() { 
+        var self = this;
+        this.setState({
+            saving: true
+        });
+        $.get("/entries/new?content=" + JSON.stringify(this.state.values), function(result) {
+            var json = JSON.parse(result);
+            self.setState({
+                lastSaved: json.id,
+                saving: false
+            });
+        });
     },
     addNew: function() {
         this.setState({

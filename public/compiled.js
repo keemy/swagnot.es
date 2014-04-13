@@ -69,13 +69,15 @@ var Editor = React.createClass({displayName: 'Editor',
         return {
             values: currentNote || [],
             showingSpritz: false,
-            myId: null
+            myId: null,
+            lastSaved: null,
+            saving: false
         }
     },
 
     render: function() {
         return React.DOM.div(null, 
-            React.DOM.div( 
+            !this.state.showingSpritz && React.DOM.div( 
                 {className:"cram-button",
                 onClick:function()  {
                     var self = this;
@@ -93,18 +95,18 @@ var Editor = React.createClass({displayName: 'Editor',
                         }, function() {});
                     });
                 }.bind(this)}, 
-                "CRAM"
+                React.DOM.i( {className:"fa fa-chevron-down"} )
             ),
-            React.DOM.div( 
+            this.state.showingSpritz && React.DOM.div( 
                 {className:"cram-button",
-                onClick:function() {
+                onClick:function()  {
                     $("#spritz").slideUp();
-            }}, 
-                "HIDE"
+                    this.setState({
+                        showingSpritz: false
+                    });
+            }.bind(this)}, 
+                React.DOM.i( {className:"fa fa-chevron-up"} )
             ),
-            this.state.myId &&
-                React.DOM.span(null, "Share this note with friends at SOME_URL/",this.state.myId),
-            
             React.DOM.div( {className:"document"}, 
                 _.map(this.state.values, function(value, i) 
                    {return Paragraph(
@@ -117,9 +119,28 @@ var Editor = React.createClass({displayName: 'Editor',
                    React.DOM.div(
                        {className:"add",
                        onClick:this.addNew}, "+")
-                )
+                ),
+                React.DOM.div( {className:"add",
+                    onClick:this.handleSave}, "Save"),
+            this.state.saving &&
+                React.DOM.div(null, "Saving..."),
+            this.state.lastSaved &&
+                React.DOM.div( {className:"share"}, "Share this note with friends at http://swagnotes.net/",this.state.lastSaved)
            )
         );
+    },
+    handleSave: function() { 
+        var self = this;
+        this.setState({
+            saving: true
+        });
+        $.get("/entries/new?content=" + JSON.stringify(this.state.values), function(result) {
+            var json = JSON.parse(result);
+            self.setState({
+                lastSaved: json.id,
+                saving: false
+            });
+        });
     },
     addNew: function() {
         this.setState({
