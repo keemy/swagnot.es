@@ -49,12 +49,13 @@ var Editor = React.createClass({
             </div>}
             <div className="document">
                 {_.map(this.state.values, (value, i) =>
-                   <Paragraph
-                       value={value}
-                       ref={"paragraph"+i}
-                       key={i}
-                       onChange={this.changeValue(i)} 
-                       onNext={this.next(i)} />)}
+                       <Paragraph
+                           value={value}
+                           ref={"paragraph"+i}
+                           key={i}
+                           onChange={this.changeValue(i)} 
+                           onNext={this.next(i)} />
+                       )}
                 <div className="add-wrapper">
                    <div
                        className="add"
@@ -148,28 +149,31 @@ var Paragraph = React.createClass({
 
     render: function() {
         if (this.state.editing) {
-            return <BlurInput
-                className="paragraph"
-                ref="editor"
-                type="text"
-                value={this.props.value}
-                onNext={(value) => {
-                    this.setState({
-                        editing: false
-                    });
-                    this.props.onNext(value);
-                }}
-                onChange={(e) => {
-                    this.setState({
-                        editing: false
-                    });
-                    this.props.onChange(e);
-                }} />
+            return <div className="paragraph-wrapper">
+                <BlurInput
+                    className="paragraph"
+                    ref="editor"
+                    type="text"
+                    value={this.props.value}
+                    onNext={(value) => {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onNext(value);
+                    }}
+                    onChange={(e) => {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onChange(e);
+                    }} />
+            </div>
         } else {
-            return <div
-                className="paragraph"
-                onClick={this.startEditor} >
-                {markedReact(this.props.value)}
+            return <div className="paragraph-wrapper"
+                        onClick={this.startEditor} >
+                <div className="paragraph">
+                    {markedReact(this.props.value)}
+                </div>
             </div>;
         }
     },

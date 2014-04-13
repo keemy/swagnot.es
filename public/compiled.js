@@ -41,7 +41,7 @@ var BlurInput = React.createClass({displayName: 'BlurInput',
         if (newValue === "\n") {
             // noop
         } else if (newValue[newValue.length - 1] === "\n") {
-            if (!currentValue.match(/\*.*$/)) {
+            if (!currentValue.match(/\* .*$/)) {
                 this.props.onNext(currentValue.trim());
             } else {
                 this.setState({ value: e.target.value });
@@ -109,12 +109,13 @@ var Editor = React.createClass({displayName: 'Editor',
             ),
             React.DOM.div( {className:"document"}, 
                 _.map(this.state.values, function(value, i) 
-                   {return Paragraph(
-                       {value:value,
-                       ref:"paragraph"+i,
-                       key:i,
-                       onChange:this.changeValue(i), 
-                       onNext:this.next(i)} );}.bind(this)),
+                       {return Paragraph(
+                           {value:value,
+                           ref:"paragraph"+i,
+                           key:i,
+                           onChange:this.changeValue(i), 
+                           onNext:this.next(i)} );}.bind(this)
+                       ),
                 React.DOM.div( {className:"add-wrapper"}, 
                    React.DOM.div(
                        {className:"add",
@@ -208,28 +209,31 @@ var Paragraph = React.createClass({displayName: 'Paragraph',
 
     render: function() {
         if (this.state.editing) {
-            return BlurInput(
-                {className:"paragraph",
-                ref:"editor",
-                type:"text",
-                value:this.props.value,
-                onNext:function(value)  {
-                    this.setState({
-                        editing: false
-                    });
-                    this.props.onNext(value);
-                }.bind(this),
-                onChange:function(e)  {
-                    this.setState({
-                        editing: false
-                    });
-                    this.props.onChange(e);
-                }.bind(this)} )
+            return React.DOM.div( {className:"paragraph-wrapper"}, 
+                BlurInput(
+                    {className:"paragraph",
+                    ref:"editor",
+                    type:"text",
+                    value:this.props.value,
+                    onNext:function(value)  {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onNext(value);
+                    }.bind(this),
+                    onChange:function(e)  {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onChange(e);
+                    }.bind(this)} )
+            )
         } else {
-            return React.DOM.div(
-                {className:"paragraph",
-                onClick:this.startEditor} , 
-                markedReact(this.props.value)
+            return React.DOM.div( {className:"paragraph-wrapper",
+                        onClick:this.startEditor} , 
+                React.DOM.div( {className:"paragraph"}, 
+                    markedReact(this.props.value)
+                )
             );
         }
     },

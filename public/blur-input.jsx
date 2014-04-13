@@ -40,7 +40,7 @@ var BlurInput = React.createClass({
         if (newValue === "\n") {
             // noop
         } else if (newValue[newValue.length - 1] === "\n") {
-            if (!currentValue.match(/\*.*$/)) {
+            if (!currentValue.match(/\* .*$/)) {
                 this.props.onNext(currentValue.trim());
             } else {
                 this.setState({ value: e.target.value });
