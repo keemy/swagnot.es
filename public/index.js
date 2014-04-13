@@ -216,7 +216,7 @@ var Paragraph = React.createClass({
     },
 
     handleBlur: function() {
-        debugger;
+       
         this.props.onChange(this.state.value, () => {
             this.setState({
                 editing: false
