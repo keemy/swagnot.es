@@ -77,25 +77,6 @@ var _ = require('underscore');
 
 var BlurInput = require("./blur-input.jsx");
 
-function setSelectionRange(input, selectionStart, selectionEnd) {
-    if (input.setSelectionRange) {
-        input.focus();
-        input.setSelectionRange(selectionStart, selectionEnd);
-    }
-    else if (input.createTextRange) {
-        var range = input.createTextRange();
-        range.collapse(true);
-        range.moveEnd('character', selectionEnd);
-        range.moveStart('character', selectionStart);
-        range.select();
-    }
-}
-
-function setCaretToPos (input, pos) {
-    setSelectionRange(input, pos, pos);
-}
-
-
 var Editor = React.createClass({displayName: 'Editor',
     getInitialState: function() {
         return {
@@ -146,9 +127,8 @@ var Editor = React.createClass({displayName: 'Editor',
                            ref:"paragraph"+i,
                            key:i,
                            onChange:this.changeValue(i), 
-                           handleChangeFocus:this.handleChangeFocus(i),
-                           onBackspace:this.backspace(i),
-                           onAdd:this.add(i)} );}.bind(this)
+                           onPrev:this.prev(i),
+                           onNext:this.next(i)} );}.bind(this)
                        ),
                 React.DOM.div( {className:"add-wrapper"}, 
                    React.DOM.div(
@@ -164,21 +144,6 @@ var Editor = React.createClass({displayName: 'Editor',
            )
         );
     },
-
-    handleChangeFocus: function(i) {
-        return function(value)  {
-            var newValues = this.state.values;
-            newValues = _.filter(this.state.values, function(value, j)  {return i === j || value !== "";});
-            this.setState({
-                values: newValues
-            }, function()  {
-                if (this.state.values[i] !== value && newValues.length === this.state.values.length) {
-                    this.refs["paragraph"+(Math.max(0,i-1))].getDOMNode().focus();
-                }
-            }.bind(this));
-        }.bind(this)
-    },
-
     handleSave: function() { 
         var self = this;
         this.setState({
@@ -196,11 +161,11 @@ var Editor = React.createClass({displayName: 'Editor',
         this.setState({
             values: this.state.values.concat([""])
         }, function()  {
-            this.refs["paragraph"+(this.state.values.length - 1)].getDOMNode().focus();
+            this.refs["paragraph"+(this.state.values.length - 1)].open();
         }.bind(this));
     },
     changeValue: function(i) {
-        return function(value, cb)  {
+        return function(value)  {
             var newValues = _.clone(this.state.values);
             newValues[i] = value;
             if (newValues[i] === "") {
@@ -208,44 +173,36 @@ var Editor = React.createClass({displayName: 'Editor',
             }
             this.setState({
                 values: newValues // _.filter(newValues, (value) => value !== "")
-            }, function()  {
-                if (cb) {
-                    cb();
-                }
             });
         }.bind(this);
     },
-    add: function(i) {
+    next: function(i) {
         return function(value)  {
-            var newValues = _.filter(this.state.values, function(value, j)  {return i === j ||  value !== "";});
-            newValues = newValues.slice(0,i + 1)
-                .concat([value])
-                .concat(newValues.slice(i + 1,newValues.length));
-            this.setState({
-                values: newValues
-            }, function()  {
-                this.refs["paragraph"+(i + 1)].getDOMNode().focus();
-            }.bind(this));
-
+            this.jumpFromTo(i, i + 1, value);
         }.bind(this);
     },
-    backspace: function(i) {
-        return function()  {
-            if (i === 0) return;
-            var newValues = _.clone(this.state.values);
-            var oldVal = newValues[i];
-            newValues.splice(i,1);
-            var previous = newValues[i-1];
-            newValues[i-1] += oldVal;
+    prev: function(i) {
+        return function(value)  {
+            this.jumpFromTo(i, i - 1, value);
+        }.bind(this);
+    },
+    jumpFromTo: function(from, to, value) {
+        var newValues = _.clone(this.state.values);
+        newValues[from] = value;
+        newValues = _.filter(newValues, function(value)  {return value !== "";});
+        if (to < this.state.values.length) {
             this.setState({
                 values: newValues
             }, function()  {
-                var node = this.refs["paragraph"+(i - 1)].getDOMNode();
-                node.focus();
-                var sel = window.getSelection();
-                sel.collapse(node.firstChild, 3);
+                this.refs["paragraph" + to].open();
             }.bind(this));
-        }.bind(this)
+        } else {
+            this.setState({
+                values: newValues.concat([""])
+            }, function()  {
+                this.refs["paragraph"+(this.state.values.length-1)].open();
+            }.bind(this));
+        }
     }
 });
 
@@ -273,61 +230,48 @@ var Paragraph = React.createClass({displayName: 'Paragraph',
     },
 
     render: function() {
-        return React.DOM.div( {className:"paragraph",
-                        contentEditable:"true",
-                        onFocus:this.handleFocus,
-                        onBlur:this.handleBlur,
-                        onKeyUp:this.handleChange,
-                        onKeyDown:this.handleKeydown} , 
-                !this.state.editing && markedReact(this.props.value),
-                this.state.editing && this.props.value !== "" && this.props.value
-        );
-    },
-
-    handleChange: function(e) {
-        this.setState({value: e.target.innerHTML });
-    },
-
-    handleBlur: function() {
-        debugger;
-        this.props.onChange(this.state.value, function()  {
-            this.setState({
-                editing: false
-            });
-        }.bind(this));
-    },
-
-    handleFocus: function() { 
-        this.setState({
-            editing: true,
-            startingValue: this.getDOMNode().innerHTML
-        }, function()  {
-            this.props.handleChangeFocus(this.props.value);
-        }.bind(this));
-    },
-
-    handleKeydown: function(e) { 
-        var offset = window.getSelection().extentOffset;
-        if (e.keyCode === 13 /* enter */) {
-            if (offset > 0) {
-                var value = this.state.value;
-                this.getDOMNode().innerHTML = this.state.startingValue;
-                this.props.onChange(value.substring(0, offset), function()  {
-                    this.setState({value: value.substring(0, offset)}, function()  {
-                        this.props.onAdd(value.substring(offset, value.length));
-                    }.bind(this));
-                }.bind(this));
-            }
-            e.preventDefault();
-        } else if (e.keyCode == 8) {
-            var offset = window.getSelection().extentOffset;
-            if (offset === 0) {
-                this.props.onChange(this.state.value, function()  {
-                    this.props.onBackspace();
-                }.bind(this));
-                e.preventDefault();
-            }
+        if (this.state.editing) {
+            return React.DOM.div( {className:"paragraph-wrapper"}, 
+                BlurInput(
+                    {className:"paragraph",
+                    ref:"editor",
+                    type:"text",
+                    value:this.props.value,
+                    onPrev:function(value)  {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onPrev(value);
+                    }.bind(this),
+                    onNext:function(value)  {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onNext(value);
+                    }.bind(this),
+                    onChange:function(e)  {
+                        this.setState({
+                            editing: false
+                        });
+                        this.props.onChange(e);
+                    }.bind(this)} )
+            )
+        } else {
+            return React.DOM.div( {className:"paragraph-wrapper",
+                        onClick:this.startEditor} , 
+                React.DOM.div( {className:"paragraph"}, 
+                    markedReact(this.props.value)
+                )
+            );
         }
+    },
+
+    startEditor: function() {
+        this.setState({
+            editing: true
+        }, function() {
+            this.refs.editor.getDOMNode().focus();
+        });
     }
 });
 
