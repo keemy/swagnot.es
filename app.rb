@@ -43,8 +43,10 @@ get "/note/:id" do
   "<script>var currentNote = #{content};</script>#{File.read("public/index.html")}"
 end
 
-get "/entries/new" do
-    result = DB[:entries].insert(content: params["content"])
+post "/entries/new" do
+    temp=JSON.parse(params["content"])
+    
+    result = DB[:entries].insert(name: temp[0], content: params["content"])
     {id: result}.to_json
 end
 
