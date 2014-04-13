@@ -28,5 +28,5 @@ get "/entries/new" do
 end
 
 get "/entries/:id" do
-    JSON.parse(DB[:entries].first(id: params["id"].to_i)[:content]).join("\n\n")
+  JSON.parse(DB[:entries].first(id: params["id"].to_i)[:content]).join(". ").chars.select{ |c|  !(/[\*_\#]/.match(c))}.join
 end
