@@ -82,12 +82,22 @@ var BlurInput = require("./blur-input.jsx");
 
 var Editor = React.createClass({displayName: 'Editor',
     getInitialState: function() {
+    var defaults = [];
+	if (!localStorage["has_seen_page"]) {
+	defaults = ["# Welcome to swagNotes",
+				"Click on any of the sections to start editing the markdown",
+				"### Features", "* *Standard* **Markdown** syntax\n* Useful keyboard controls (try Tab and Shift-Tab!)\n* Cram mode (click the arrow at the top!)", "Visit [this page](/login) to create an account or log in", "Click 'Save' below to get a URL for your notes", "Refresh this page to clear this message and get a clean slate!"];
+    localStorage["has_seen_page"] = true;
+
+	}
+
         return {
-            values: currentNote || [],
+            values: currentNote || defaults,
             showingSpritz: false,
             myId: null,
             lastSaved: null,
-            saving: false
+            saving: false,
+            timesOpened: 0
         }
     },
 
@@ -98,14 +108,17 @@ var Editor = React.createClass({displayName: 'Editor',
                 onClick:function()  {
                     var self = this;
                     this.setState({
-                        showingSpritz: true
+                        showingSpritz: true,
+			timesOpened: this.state.timesOpened + 1
                     });
                     $("#spritz").slideDown();
-                    $.post("/entries/new?content=" + JSON.stringify(this.state.values), function(result) {
+                    $.post("/entries/update", {
+        content: JSON.stringify(this.state.values),
+        id: currentItem
+      },
+      function(result) {
                         var json = JSON.parse(result);
-                        self.setState({
-                            myId: json.id
-                        });
+			currentItem = result.id;
                         SpritzClient.fetchContents("http://107.170.192.223/entries/" + json.id, function (spritzText) {
                             $(".spritzer").data("controller").startSpritzing(spritzText);
                         }, function() {});
@@ -121,7 +134,8 @@ var Editor = React.createClass({displayName: 'Editor',
                         showingSpritz: false
                     });
             }.bind(this)}, 
-                React.DOM.i( {className:"fa fa-chevron-up"} )
+		this.state.timesOpened < 3 && React.DOM.i( {className:"fa fa-chevron-up"} ),
+		this.state.timesOpened >= 3 && React.DOM.span(null, ":",React.DOM.i( {className:"fa fa-chevron-up"} ),")")
             ),
             React.DOM.div( {className:"document"}, 
                 _.map(this.state.values, function(value, i) 
@@ -144,8 +158,10 @@ var Editor = React.createClass({displayName: 'Editor',
                     onClick:this.handleSave}, "Save"),
             this.state.saving &&
                 React.DOM.div(null, "Saving..."),
-            this.state.lastSaved &&
-                React.DOM.div( {className:"share"}, "Share this note with friends at http://swagnotes.net/",this.state.lastSaved)
+            currentItem !== -1 && currentItem&&
+                React.DOM.div( {className:"share"}, "Share this note with friends at:"," ",
+React.DOM.a( {href:"http://swagnotes.net/note/" + currentItem}, "swagnotes.net/note/",currentItem)),
+		React.DOM.div( {className:"about"}, React.DOM.a( {target:"_blank", href:"http://swagnotes.net/note/36"}, "About"))
            )
         );
     },
@@ -154,7 +170,7 @@ var Editor = React.createClass({displayName: 'Editor',
             if (left === "") return;
             var newValues = _.clone(this.state.values);
 
-            if (left.match(/(^|\n)\* .*$/) && (right.match(/\* /) || right === "")) {
+            if (left.match(/(^|\n)\s*\* .*$/) && (right.match(/\* /) || right === "")) {
                 newValues[i] = left + "\n" + right;
                 this.setState({
                     values: newValues
@@ -191,8 +207,12 @@ var Editor = React.createClass({displayName: 'Editor',
         this.setState({
             saving: true
         });
-        $.get("/entries/new?content=" + JSON.stringify(this.state.values), function(result) {
+           $.post("/entries/update", {
+      content: JSON.stringify(this.state.values),
+      id: currentItem
+    }, function(result) {
             var json = JSON.parse(result);
+            currentItem = json.id;
             self.setState({
                 lastSaved: json.id,
                 saving: false
@@ -232,7 +252,7 @@ var Editor = React.createClass({displayName: 'Editor',
         var newValues = _.clone(this.state.values);
         newValues[from] = value;
         newValues = _.filter(newValues, function(value)  {return value !== "";});
-        if (to < this.state.values.length) {
+        if (to < newValues.length) {
             this.setState({
                 values: newValues
             }, function()  {
